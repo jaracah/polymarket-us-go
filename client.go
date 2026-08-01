@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -45,11 +46,14 @@ func NewClient(hc *http.Client) *Client {
 func NewAuthedClient(hc *http.Client, signer *Signer, gatewayURL, apiURL string) *Client {
 	c := NewClient(hc)
 	c.signer = signer
+	// Trailing slashes are trimmed because every request path is appended
+	// with its own leading slash; on the WebSocket handshake a doubled
+	// slash would also desync the request path from the signed path.
 	if gatewayURL != "" {
-		c.gatewayURL = gatewayURL
+		c.gatewayURL = strings.TrimRight(gatewayURL, "/")
 	}
 	if apiURL != "" {
-		c.apiURL = apiURL
+		c.apiURL = strings.TrimRight(apiURL, "/")
 	}
 	return c
 }

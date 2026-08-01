@@ -155,8 +155,8 @@ func TestPrivateStream(t *testing.T) {
 		t.Fatalf("frame 2 = %+v, %v — want execution", m2, err)
 	}
 	ex := m2.Execution
-	if ex.Type != "EXECUTION_TYPE_FILL" || ex.LastShares != 10 || ex.LastPriceC != 42 ||
-		ex.TradeID != "tr-9" || !ex.Aggressor || ex.Order.State != StateFilled {
+	if ex.Type != "EXECUTION_TYPE_FILL" || ex.LastShares != 10 || ex.LastQty != "10" ||
+		ex.LastPriceC != 42 || ex.TradeID != "tr-9" || !ex.Aggressor || ex.Order.State != StateFilled {
 		t.Errorf("execution = %+v", ex)
 	}
 	m3, err := st.Next(ctx)

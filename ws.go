@@ -260,6 +260,7 @@ type StreamExecution struct {
 	Type         string // EXECUTION_TYPE_*
 	Order        OpenOrder
 	LastShares   float64 // contracts in this execution (fills)
+	LastQty      string  // raw decimal contracts in this execution
 	LastPriceC   int     // price of this execution, cents (fills)
 	LastPx       string  // raw decimal price of this execution
 	TradeID      string
@@ -377,7 +378,8 @@ func (s *PrivateStream) Next(ctx context.Context) (PrivateMessage, error) {
 		}
 		msg.Execution = &StreamExecution{
 			Type: ex.Type, Order: ex.Order.open(),
-			LastShares: shares, LastPriceC: ex.LastPx.Cents(), LastPx: ex.LastPx.Value,
+			LastShares: shares, LastQty: ex.LastShares,
+			LastPriceC: ex.LastPx.Cents(), LastPx: ex.LastPx.Value,
 			TradeID: ex.TradeID, Aggressor: ex.Aggressor,
 			TransactTime: ex.TransactTime, RejectReason: ex.OrderRejectReason,
 		}

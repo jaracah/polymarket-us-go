@@ -326,3 +326,13 @@ func TestOpenOrdersAndCancelAll(t *testing.T) {
 		t.Errorf("canceled ids = %v", ids)
 	}
 }
+
+func TestNewAuthedClientTrimsTrailingSlash(t *testing.T) {
+	// Request paths are appended with their own leading slash; an untrimmed
+	// base URL would produce "//"-prefixed paths and, on the WS handshake,
+	// desync the request path from the signed path.
+	c := NewAuthedClient(nil, nil, "https://gw.example/", "https://api.example//")
+	if c.gatewayURL != "https://gw.example" || c.apiURL != "https://api.example" {
+		t.Errorf("base URLs = %q / %q, want trailing slashes trimmed", c.gatewayURL, c.apiURL)
+	}
+}
