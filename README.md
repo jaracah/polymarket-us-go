@@ -146,6 +146,23 @@ for {
 Subscriptions do not survive a reconnect — after a transport error, redial and
 re-subscribe.
 
+Both streams expose `Ping(ctx)`, a protocol-level ping that waits for the
+pong. Heartbeat from a separate goroutine while the main loop sits in `Next`
+— it keeps idle connections alive through load-balancer timeouts and detects
+a dead transport early:
+
+```go
+go func() {
+    t := time.NewTicker(30 * time.Second)
+    defer t.Stop()
+    for range t.C {
+        if err := ms.Ping(ctx); err != nil {
+            return // transport dead: redial and re-subscribe
+        }
+    }
+}()
+```
+
 ## Design notes
 
 - **Prices parse to integer cents** (`PriceC`, `AvgPriceC`, …) because binary
