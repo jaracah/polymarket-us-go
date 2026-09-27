@@ -95,6 +95,12 @@ res, err = c.ClosePosition(ctx, "btc-100k")          // market-close one positio
 positions, err := c.Positions(ctx)                   // map[slug]Position, cursor-paginated
 ```
 
+Market data and trading are served from different hosts, so their connection
+pools warm independently: polling `Balance` keeps the trading host's TLS
+connection hot (the one order latency depends on), while any cheap read like
+`FetchBBO` does the same for the market-data gateway. A bot that only polls
+market data still pays connection setup on its first order.
+
 The exchange trades LONG and SHORT as separate instruments, so there are four
 order intents (`IntentBuyLong`, `IntentSellLong`, `IntentBuyShort`,
 `IntentSellShort`) and prices always quote the named instrument — no `100 − p`
@@ -145,6 +151,23 @@ for {
 
 Subscriptions do not survive a reconnect — after a transport error, redial and
 re-subscribe.
+
+Both streams expose `Ping(ctx)`, a protocol-level ping that waits for the
+pong. Heartbeat from a separate goroutine while the main loop sits in `Next`
+— it keeps idle connections alive through load-balancer timeouts and detects
+a dead transport early:
+
+```go
+go func() {
+    t := time.NewTicker(30 * time.Second)
+    defer t.Stop()
+    for range t.C {
+        if err := ms.Ping(ctx); err != nil {
+            return // transport dead: redial and re-subscribe
+        }
+    }
+}()
+```
 
 ## Design notes
 

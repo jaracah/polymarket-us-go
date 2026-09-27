@@ -95,6 +95,17 @@ func (s *stream) Unsubscribe(ctx context.Context, requestID string) error {
 	return s.conn.Write(ctx, websocket.MessageText, frame)
 }
 
+// Ping sends a WebSocket protocol-level ping and waits for the peer's pong,
+// bounded by ctx. Called on an interval from its own goroutine, it keeps an
+// idle connection hot through intermediary idle timeouts and detects a dead
+// transport sooner than waiting for Next to fail. A concurrent Next call
+// must be in flight for the pong to be observed — control frames are
+// processed while a read is blocked — so heartbeat from a separate
+// goroutine while the read loop runs, never instead of it.
+func (s *stream) Ping(ctx context.Context) error {
+	return s.conn.Ping(ctx)
+}
+
 // Close closes the connection.
 func (s *stream) Close() error {
 	return s.conn.Close(websocket.StatusNormalClosure, "")

@@ -206,3 +206,34 @@ func TestPrivateStreamBadLastSharesIsError(t *testing.T) {
 		t.Fatalf("frame after content error = %+v, %v — want balance", m, err)
 	}
 }
+
+// Ping requires a peer that pongs (coder/websocket does so while blocked in
+// Read — the harness's hold-open state) and a concurrent Next on our side to
+// observe the pong.
+func TestStreamPing(t *testing.T) {
+	subscribed := make(chan []byte, 1)
+	srv := wsTestServer(t, "/v1/ws/markets", subscribed, nil)
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	st, err := wsClient(t, srv).DialMarkets(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	// The harness reads one frame (the subscribe) before settling into its
+	// hold-open Read; satisfy that so the ping meets a blocked reader.
+	if err := st.SubscribeBooks(ctx, "hb-1", "btc-100k"); err != nil {
+		t.Fatal(err)
+	}
+	<-subscribed
+
+	// Control frames are only processed while a read is in flight.
+	go st.Next(ctx)
+
+	if err := st.Ping(ctx); err != nil {
+		t.Fatalf("ping: %v", err)
+	}
+}
